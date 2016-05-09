@@ -819,25 +819,25 @@ public:
   {
     for (;;)
       {
-        for (auto p: pipe)
+        for (auto *p: pipe)
           p->disable_notify();
 
         for (bool more = true; more; )
           {
             more = false;
-            for (auto p: pipe)
+            for (auto *p: pipe)
               if (L4_LIKELY(p->ready()))
                 more |= p->copy();
           }
 
-        for (auto p: pipe)
+        for (auto *p: pipe)
           p->enable_notify();
 
         L4virtio::wmb();
         L4virtio::rmb();
 
         bool work = false;
-        for (auto p: pipe)
+        for (auto *p: pipe)
           if (L4_UNLIKELY((work |= p->work_pending())))
             break;
 

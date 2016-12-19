@@ -66,8 +66,8 @@ struct Virtqueue : L4virtio::Svr::Virtqueue
 enum
 {
   Merge_rx_buffers = true,
-  Csum_offload     = true,
-  Full_segmentation_offload = true,
+  Csum_offload     = false,
+  Full_segmentation_offload = false,
 };
 
 static struct option options[] =

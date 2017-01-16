@@ -677,7 +677,7 @@ int main(int argc, char *argv[])
   int opt, index;
   unsigned vq_max_num = 0x100; // default value for data queues
 
-  printf("Hello from l4virtio host\n");
+  printf("Hello from l4vio_net_p2p\n");
 
   while( (opt = getopt_long(argc, argv, "s:", options, &index)) != -1)
     {

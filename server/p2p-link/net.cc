@@ -180,6 +180,7 @@ public:
       }
 
     _dev_config.host_features(0) = hf.raw;
+    _dev_config.host_features(1) = 1;
     _dev_config.reset_hdr();
 
     reset_queue_config(0, vq_max);

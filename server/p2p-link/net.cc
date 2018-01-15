@@ -189,7 +189,9 @@ public:
 
   void register_single_driver_irq()
   {
-    kick_guest_irq = L4Re::chkcap(server_iface()->rcv_cap<L4::Irq>(0));
+    kick_guest_irq = L4Re::Util::Unique_cap<L4::Irq>(
+       L4Re::chkcap(server_iface()->template rcv_cap<L4::Irq>(0)));
+
     L4Re::chksys(server_iface()->realloc_rcv_cap(0));
   }
 
@@ -282,7 +284,7 @@ private:
 
   unsigned _vq_max;
   Virtqueue _q[2];
-  L4Re::Util::Auto_cap<L4::Irq>::Cap kick_guest_irq;
+  L4Re::Util::Unique_cap<L4::Irq> kick_guest_irq;
   L4::Cap<L4::Irq> _host_irq;
 };
 

@@ -495,9 +495,6 @@ public:
                   if (rx.merge_rx)
                     rx.hdr->num_buffers = nmerge;
 
-                  if (tx.hdr->flags.need_csum() == 0)
-                    rx.hdr->flags.data_valid() = 1;
-
                   rx.q->finish_x(nmerge, rx.d);
 
                   nmerge = 0;

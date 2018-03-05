@@ -353,19 +353,20 @@ public:
     Buffer pkt;
     Virtio_net::Hdr *hdr;
 
-    Virtio_net *d;
+    /// Pointer to the device the end point belongs to
+    Virtio_net *dev;
     Virtqueue *q;
 
     enum { merge_rx = Merge_rx_buffers };
     enum { hdr_size = Merge_rx_buffers ? 12 : 10 };
 
-    End_point(Virtio_net *dev, Virtqueue *queue) : d(dev), q(queue) {}
+    End_point(Virtio_net *device, Virtqueue *queue) : dev(device), q(queue) {}
 
     void finish(l4_uint32_t total = 0)
-    { q->finish(head, d, total); }
+    { q->finish(head, dev, total); }
 
     bool next()
-    { return Request_processor::next(d->mem_info(), &pkt); }
+    { return Request_processor::next(dev->mem_info(), &pkt); }
 
     bool start_packet(bool read, l4_uint32_t *total = 0, bool merge = false)
     {
@@ -374,7 +375,7 @@ public:
       if (L4_UNLIKELY(!r))
         return false;
 
-      head = start(d->mem_info(), r, &pkt);
+      head = start(dev->mem_info(), r, &pkt);
       if (0)
         printf("XX(%s): start new packet: %p (%u)\n",
                read ? "tx" : "rx", pkt.pos, pkt.left);
@@ -495,7 +496,7 @@ public:
                   if (rx.merge_rx)
                     rx.hdr->num_buffers = nmerge;
 
-                  rx.q->finish_x(nmerge, rx.d);
+                  rx.q->finish_x(nmerge, rx.dev);
 
                   nmerge = 0;
                   if (L4_UNLIKELY(!start_tx_packet()))
@@ -515,7 +516,7 @@ public:
                     {
                       printf("%p: truncated rx packet, drop\n", this);
                       rx.hdr->flags.raw = 0;
-                      rx.q->finish_x(nmerge, rx.d);
+                      rx.q->finish_x(nmerge, rx.dev);
                     }
 
                   if (0)
@@ -534,25 +535,25 @@ public:
           if (e.proc == &tx)
             {
               // failed TX queue, be nice to RX part.
-              tx.d->device_error();
+              tx.dev->device_error();
 
               if (rx.q->ready() && rx.head)
                 rx.finish(total);
 
               printf("error: TX queue error: bad descriptor: %d in device %p, queue %p\n",
-                     e.error, tx.d, tx.q);
+                     e.error, tx.dev, tx.q);
             }
 
           if (e.proc == &rx)
             {
               // failed RX queue, send half pkt to TX part.
-              rx.d->device_error();
+              rx.dev->device_error();
 
               if (tx.q->ready() && tx.head)
                 tx.finish();
 
               printf("error: RX queue error: bad descriptor: %d in device %p, queue %p\n",
-                     e.error, rx.d, rx.q);
+                     e.error, rx.dev, rx.q);
             }
 
           return false;

@@ -478,14 +478,14 @@ public:
     {
       _noop = _rx->dev->enabled_features().guest_csum() ||
               !_tx->hdr->flags.need_csum();
-      if (_noop == true)
+
+      if (_noop)
         return;
 
       _csum.reset();
-
       _rxptr = nullptr;
-
       _pos = 0;
+
       // Whether those values are out-of-bounds will be detected by finish(),
       // as we will never have found the right spot for writing the checksum
       // while copying/checksumming in this case. Checking them directly here,

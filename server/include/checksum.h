@@ -41,15 +41,13 @@ public:
    *
    * This adds the given data buffer to the current checksum.
    */
-  void add(l4_uint8_t *buf, size_t len)
+  void add(l4_uint8_t const *buf, size_t len)
   {
-    size_t i;
+    for (; len > 1; len -= 2)
+      _sum += (*(buf++) << 8) | *(buf++);
 
-    for (i = 0; i + 1 < len; i += 2)
-      _sum += buf[i] << 8 | buf[i+1];
-
-    if (i < len)
-      _sum += buf[i] << 8;
+    if (len > 0)
+      _sum += *buf << 8;
   }
 
   /**

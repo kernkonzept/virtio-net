@@ -43,8 +43,8 @@ public:
    */
   void add(l4_uint8_t const *buf, size_t len)
   {
-    for (; len > 1; len -= 2)
-      _sum += (*(buf++) << 8) | *(buf++);
+    for (; len > 1; len -= 2, buf += 2)
+      _sum += ((l4_uint16_t)buf[0] << 8) | buf[1];
 
     if (len > 0)
       _sum += *buf << 8;

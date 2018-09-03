@@ -81,6 +81,7 @@ static struct option options[] =
     {0, 0, 0, 0}
 };
 
+using Mac_address = l4_uint8_t[6];
 
 #ifdef CONFIG_STATS
 static void *stats_thread_loop(void *);
@@ -152,6 +153,8 @@ public:
 
   struct Net_config_space
   {
+    /// MAC address of the device (if VIRTIO_NET_F_MAC aka Features::mac)
+    Mac_address mac;
   };
 
   L4virtio::Svr::Dev_config_t<Net_config_space> _dev_config;
@@ -190,6 +193,21 @@ public:
 
     reset_queue_config(0, vq_max);
     reset_queue_config(1, vq_max);
+  }
+
+  void set_mac_address(Mac_address const &mac)
+  {
+    _dev_config.priv_config()->mac[0] = mac[0];
+    _dev_config.priv_config()->mac[1] = mac[1];
+    _dev_config.priv_config()->mac[2] = mac[2];
+    _dev_config.priv_config()->mac[3] = mac[3];
+    _dev_config.priv_config()->mac[4] = mac[4];
+    _dev_config.priv_config()->mac[5] = mac[5];
+
+    Features hf(_dev_config.host_features(0));
+    hf.mac()        = true;
+    _dev_config.host_features(0) = hf.raw;
+    _dev_config.reset_hdr();
   }
 
   void register_single_driver_irq()
@@ -801,10 +819,33 @@ public:
         return -L4_EINVAL;
       }
 
+    Mac_address mac;
+    bool has_mac = false;
+
+    opt = va.next();
+    if (opt.is_of<char const *>())
+      {
+        has_mac = true;
+        int e = sscanf(opt.value<char const *>(),
+                       "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+                       &mac[0], &mac[1],
+                       &mac[2], &mac[3],
+                       &mac[4], &mac[5]);
+
+        if (e != 6)
+          {
+            printf("warning: second parameter is not a valid mac address\n");
+            return -L4_EINVAL;
+          }
+      }
+
     for (auto *p: port)
       {
         if (p->available())
           {
+            if (has_mac)
+              p->set_mac_address(mac);
+
             p->register_client(server.registry(), host_irq(), num_ds);
             res = L4::Ipc::make_cap(p->obj_cap(), L4_CAP_FPAGE_RWSD);
 

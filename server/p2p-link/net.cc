@@ -78,6 +78,7 @@ enum
 static struct option options[] =
 {
     {"size", 1, 0, 's'},  // size of in/out queue == #buffers in queue
+    {"poll", 1, 0, 'p'},  // enable polling mode
     {0, 0, 0, 0}
 };
 
@@ -162,7 +163,7 @@ public:
   explicit Virtio_net(unsigned vq_max)
   : L4virtio::Svr::Device(&_dev_config),
     _dev_config(0x44, L4VIRTIO_ID_NET, 2),
-    _vq_max(vq_max), _enabled_features(0)
+    _vq_max(vq_max), _enabled_features(0), _poll_mode(false)
 #ifdef CONFIG_STATS
     , num_tx(0), num_rx(0), num_dropped(0), num_irqs(0)
 #endif
@@ -250,7 +251,11 @@ public:
       return -L4_ERANGE;
 
     if (setup_queue(_q + index, index, _vq_max))
-      return 0;
+      {
+        if (_poll_mode)
+          _q[index].disable_notify();
+        return 0;
+      }
 
     return -L4_EINVAL;
   }
@@ -299,6 +304,14 @@ public:
 #endif
   }
 
+  void enable_poll_mode()
+  {
+    _poll_mode = true;
+
+    for (auto &q : _q)
+      q.disable_notify();
+  }
+
   char const *name;
 
   template<typename REG>
@@ -330,13 +343,33 @@ private:
   L4Re::Util::Unique_cap<L4::Irq> kick_guest_irq;
   L4::Cap<L4::Irq> _host_irq;
   Features _enabled_features;
+  bool _poll_mode;
 };
 
-static L4Re::Util::Registry_server<L4Re::Util::Br_manager_hooks> server;
+static L4Re::Util::Registry_server<L4Re::Util::Br_manager_timeout_hooks> server;
 
-class Sock_pair : public L4::Epiface_t<Sock_pair, L4::Factory>
+class Sock_pair
+: public L4::Epiface_t<Sock_pair, L4::Factory>,
+  private L4::Ipc_svr::Timeout_queue::Timeout
 {
 private:
+  void expired()
+  {
+    for (Virtio_net *p: port)
+      p->handle_mem_cmd_write();
+
+    for (bool more = true; more; )
+      {
+        more = false;
+        for (auto p: pipe)
+          if (L4_LIKELY(p->ready()))
+            more |= p->copy();
+      }
+
+    _poll_next += _poll_interval;
+    server_iface()->add_timeout(this, _poll_next);
+  }
+
   struct Host_irq : public L4::Irqep_t<Host_irq>
   {
     explicit Host_irq(Sock_pair *sp) : s(sp) {}
@@ -371,8 +404,26 @@ private:
 
   Host_irq _host_irq;
   Del_cap_irq _del_cap_irq;
+  unsigned _poll_interval;
+  l4_kernel_clock_t _poll_next;
 
 public:
+  void enable_timer(unsigned poll_interval)
+  {
+    assert(poll_interval > 0);
+    assert(_poll_interval == 0); // must not have been set before
+
+    printf("Enable polling at interval %d\n", poll_interval);
+
+    // disable all notifications
+    for (auto *p : port)
+      p->enable_poll_mode();
+
+    _poll_next = l4_kip_clock(l4re_kip()) + poll_interval;
+    _poll_interval = poll_interval;
+    server_iface()->add_timeout(this, _poll_next);
+  }
+
   L4::Cap<L4::Irq> host_irq() const
   { return L4::cap_cast<L4::Irq>(_host_irq.obj_cap()); }
 
@@ -789,7 +840,8 @@ public:
    */
   Sock_pair(unsigned vq_max)
   : _host_irq(this),
-    _del_cap_irq(port, Nports)
+    _del_cap_irq(port, Nports),
+    _poll_interval(0)
   {
     for (Virtio_net *&p: port)
       p = new Virtio_net(vq_max);
@@ -919,16 +971,26 @@ int main(int argc, char *argv[])
 
   int opt, index;
   unsigned vq_max_num = 0x100; // default value for data queues
+  int poll_interval = 0;
 
   printf("Hello from l4vio_net_p2p\n");
 
-  while( (opt = getopt_long(argc, argv, "s:", options, &index)) != -1)
+  while( (opt = getopt_long(argc, argv, "s:p:", options, &index)) != -1)
     {
       switch (opt)
         {
         case 's':
           vq_max_num = atoi(optarg);
           printf("Max number of buffers in virtqueue: %u\n", vq_max_num);
+          break;
+        case 'p':
+          poll_interval = atoi(optarg);
+          if (poll_interval <= 0)
+            {
+              printf("Bad poll interval '%s'. Must be number greater than 0.\n",
+                     optarg);
+              return 1;
+            }
           break;
         }
     }
@@ -938,6 +1000,9 @@ int main(int argc, char *argv[])
   server.registry()->register_irq_obj(s->irq_object());
   if (!cap.is_valid())
     printf("error registering switch\n");
+
+  if (poll_interval > 0)
+    s->enable_timer(poll_interval);
 
 #ifdef CONFIG_STATS
   pthread_t stats_thread;

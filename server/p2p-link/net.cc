@@ -962,7 +962,8 @@ static void *stats_thread_loop(void *)
 };
 #endif
 
-int main(int argc, char *argv[])
+static int
+run(int argc, char *const *argv)
 {
   Dbg info;
   Dbg warn(Dbg::Warn);
@@ -1014,4 +1015,25 @@ int main(int argc, char *argv[])
 }
 
 
+int
+main(int argc, char *const *argv)
+{
+  try
+    {
+      return run(argc, argv);
+    }
+  catch (L4::Runtime_error const &e)
+    {
+      Err().printf("%s: %s\n", e.str(), e.extra_str());
+    }
+  catch (L4::Base_exception const &e)
+    {
+      Err().printf("Error: %s\n", e.str());
+    }
+  catch (std::exception const &e)
+    {
+      Err().printf("Error: %s\n", e.what());
+    }
 
+  return 2;
+}

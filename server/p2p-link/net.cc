@@ -189,7 +189,8 @@ public:
       }
 
     _dev_config.host_features(0) = hf.raw;
-    _dev_config.host_features(1) = 1;
+
+    _dev_config.set_host_feature(L4VIRTIO_FEATURE_VERSION_1);
     _dev_config.reset_hdr();
 
     reset_queue_config(0, vq_max);
@@ -307,6 +308,9 @@ public:
   void enable_poll_mode()
   {
     _poll_mode = true;
+
+    _dev_config.set_host_feature(L4VIRTIO_FEATURE_CMD_CONFIG);
+    _dev_config.reset_hdr();
 
     for (auto &q : _q)
       q.disable_notify();

@@ -417,7 +417,7 @@ public:
     assert(poll_interval > 0);
     assert(_poll_interval == 0); // must not have been set before
 
-    printf("Enable polling at interval %d\n", poll_interval);
+    printf("Enable polling at interval %u usec\n", poll_interval);
 
     // disable all notifications
     for (auto *p : port)
@@ -976,7 +976,7 @@ run(int argc, char *const *argv)
   Dbg::set_level(0xf);
 
   int opt, index;
-  unsigned vq_max_num = 0x100; // default value for data queues
+  int vq_max_num = 0x100; // default value for data queues
   int poll_interval = 0;
 
   printf("Hello from l4vio_net_p2p\n");
@@ -987,19 +987,28 @@ run(int argc, char *const *argv)
         {
         case 's':
           vq_max_num = atoi(optarg);
-          printf("Max number of buffers in virtqueue: %u\n", vq_max_num);
+          // QueueNumMax must be power of 2 between 1 and 0x8000
+          if (vq_max_num < 1 || vq_max_num > 32768 ||
+              (vq_max_num & (vq_max_num - 1)))
+            {
+              printf("Max number of virtqueue buffers must be power of 2"
+                     " between 1 and 32768. Invalid value: %i\n", vq_max_num);
+              return 1;
+            }
           break;
         case 'p':
           poll_interval = atoi(optarg);
           if (poll_interval <= 0)
             {
-              printf("Bad poll interval '%s'. Must be number greater than 0.\n",
+              printf("Bad poll interval '%s' usec. Must be greater than 0.\n",
                      optarg);
               return 1;
             }
           break;
         }
     }
+
+  printf("Max number of buffers in virtqueue: %i\n", vq_max_num);
 
   Sock_pair *s = new Sock_pair(vq_max_num);
   L4::Cap<void> cap = server.registry()->register_obj(s, "svr");

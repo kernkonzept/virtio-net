@@ -49,8 +49,8 @@
  *
  * * `-s <num>`, `--size <num>`
  *
- *   Set the number of available RX buffers in the device-side virtio queue.
- *   Must be in the range of 1 to 1024 inclusive.
+ *   Set the maximum queue size for the device-side virtio queues.
+ *   Must be a power of 2 in the range of 1 to 32768 inclusive.
  *
  * ## Connecting a client
  *

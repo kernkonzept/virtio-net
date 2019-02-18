@@ -354,6 +354,66 @@ private:
 
 static L4Re::Util::Registry_server<L4Re::Util::Br_manager_timeout_hooks> server;
 
+static bool
+parse_string_param(L4::Ipc::Varg const &param, char const *prefix,
+                   std::string *out)
+{
+  l4_size_t headlen = strlen(prefix);
+
+  if (param.length() < headlen)
+    return false;
+
+  char const *pstr = param.value<char const *>();
+
+  if (strncmp(pstr, prefix, headlen) != 0)
+    return false;
+
+  *out = std::string(pstr + headlen, strnlen(pstr, param.length()) - headlen);
+
+  return true;
+}
+
+static bool
+parse_int_optstring(char const *optstring, int *out)
+{
+  char *endp;
+
+  errno = 0;
+  long num = strtol(optstring, &endp, 10);
+
+  // check that long can be converted to int
+  if (errno || *endp != '\0' || num < INT_MIN || num > INT_MAX)
+    return false;
+
+  *out = num;
+
+  return true;
+}
+
+static bool
+parse_int_param(L4::Ipc::Varg const &param, char const *prefix, int *out)
+{
+  l4_size_t headlen = strlen(prefix);
+
+  if (param.length() < headlen)
+    return false;
+
+  char const *pstr = param.value<char const *>();
+
+  if (strncmp(pstr, prefix, headlen) != 0)
+    return false;
+
+  std::string tail(pstr + headlen, param.length() - headlen);
+
+  if (!parse_int_optstring(tail.c_str(), out))
+    {
+      printf("Bad paramter '%s'. Invalid number specified.\n", prefix);
+      L4Re::chksys(-L4_EINVAL);
+    }
+
+  return true;
+}
+
 class Sock_pair
 : public L4::Epiface_t<Sock_pair, L4::Factory>,
   private L4::Ipc_svr::Timeout_queue::Timeout
@@ -862,7 +922,7 @@ public:
   /**
    * Convert colon-delimited MAC address string into numeric MAC address
    *
-   * \param      text   MAC address string to parse (i.e. "X:XX:XX:x:xx:xX").
+   * \param      text   MAC address string to parse (i.e. "X:XX:Xx:x:xx:xX").
    * \param[out] mac    Output buffer for MAC address.
    *
    * \retval L4_EOK     Success
@@ -892,36 +952,48 @@ public:
   long op_create(L4::Factory::Rights, L4::Ipc::Cap<void> &res,
                  l4_umword_t type, L4::Ipc::Varg_list_ref va)
   {
+    int num_ds = 2; // set a default
+    bool has_mac = false;
+    Mac_address mac;
+
     // test for supported object types
     if (type != 0)
       return -L4_EINVAL;
 
-    L4::Ipc::Varg opt = va.next();
-    if (!opt.is_of_int())
-      return -L4_EINVAL;
-
-    l4_mword_t num_ds = opt.value<l4_mword_t>();
-    if (num_ds <= 0 || num_ds > 80)
+    for (L4::Ipc::Varg opt = va.next(); !opt.is_nil(); opt = va.next())
       {
-        printf("warning: client requested invalid number"
-               " of data spaces: 0 < %ld <= 80\n", num_ds);
-        return -L4_EINVAL;
-      }
+        std::string mac_str;
 
-    Mac_address mac;
-    bool has_mac = false;
-
-    opt = va.next();
-    if (opt.is_of<char const *>())
-      {
-        has_mac = true;
-
-        if (text_to_mac(opt.value<char const *>(), mac))
+        if (!opt.is_of<char const *>())
           {
-            printf("warning: second parameter is not a valid mac address. "
-                   "Must be of the form 'X:XX:XX:x:xx:xX'.\n");
+            printf("String parameter expected.\n");
             return -L4_EINVAL;
           }
+
+        if (parse_int_param(opt, "ds-max=", &num_ds))
+          {
+            if (num_ds <= 0 || num_ds > 80)
+              {
+                printf("Invalid range for parameter 'ds-max'. "
+                       "Number must be between 1 and 80 inclusive.\n");
+                return -L4_EINVAL;
+              }
+            continue;
+          }
+        if (parse_string_param(opt, "mac-addr=", &mac_str))
+          {
+            has_mac = true;
+
+            if (text_to_mac(mac_str.c_str(), mac) < 0)
+              {
+                printf("Invalid value for parameter 'mac-addr'. "
+                       "Must be of the form 'X:XX:Xx:x:xx:xX'.\n");
+                return -L4_EINVAL;
+              }
+            continue;
+          }
+        printf("Invalid client option ignored. '%s'.\n",
+               opt.value<char const *>());
       }
 
     for (auto *p: port)
@@ -1014,19 +1086,19 @@ run(int argc, char *const *argv)
       switch (opt)
         {
         case 's':
-          vq_max_num = atoi(optarg);
           // QueueNumMax must be power of 2 between 1 and 0x8000
-          if (vq_max_num < 1 || vq_max_num > 32768 ||
-              (vq_max_num & (vq_max_num - 1)))
+          if (!parse_int_optstring(optarg, &vq_max_num) || vq_max_num < 1
+              || vq_max_num > 32768 || (vq_max_num & (vq_max_num - 1)))
             {
               printf("Max number of virtqueue buffers must be power of 2"
-                     " between 1 and 32768. Invalid value: %i\n", vq_max_num);
+                     " between 1 and 32768. Invalid value: %s\n",
+                     optarg);
               return 1;
             }
           break;
         case 'p':
-          poll_interval = atoi(optarg);
-          if (poll_interval <= 0)
+          if (!parse_int_optstring(optarg, &poll_interval)
+              || poll_interval <= 0)
             {
               printf("Bad poll interval '%s' usec. Must be greater than 0.\n",
                      optarg);

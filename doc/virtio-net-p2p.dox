@@ -59,7 +59,10 @@
  * client side of the IPC gate capability whose server side is bound to the
  * virtual network p2p server.
  *
- *     create(obj_type, num_ds [, mac_address])
+ * The "key=value" pairs passed to create() can be omitted and their order is
+ * not important.
+ *
+ *     create(obj_type, ["ds-max=<max>" , "mac-addr=<mac_address>"])
  *
  * * `obj_type`
  *
@@ -67,16 +70,16 @@
  *   a positive integer. Currently the following objects are supported:
  *   * `0`: Virtual p2p port
  *
- * * `num_ds`
+ * * `"ds-max=<max>"`
  *
  *   Specifies the upper limit of the number of dataspaces the client is
  *   allowed to register with the server for virtio DMA. Must be in the range of
- *   1 to 80 inclusive.
+ *   1 to 80 inclusive. The default value is 2.
  *
- * * `mac_address`
+ * * `"mac-addr=<mac_address>"`
  *
- *   Specify the MAC address of the endpoint as a string of the form
- *   "00:00:00:00:00:00"
+ *   Specify the MAC address of the endpoint where <mac_address> is of
+ *   the form X:XX:Xx:x:xx:xX.
  *
  * If the `create()` call is successfull a new capability which references a
  * virtual network p2p server port is returned. A client uses this capability
@@ -86,9 +89,9 @@
  * listed below.
  *
  *     -- two normal ports with at most 4 data spaces
- *     net0 = p2p:create(0, 4)
- *     net1 = p2p:create(0, 4)
+ *     net0 = p2p:create(0, "ds-max=4")
+ *     net1 = p2p:create(0, "ds-max=4")
  *     -- normal port with 4 data spaces and MAC address
- *     net0 = p2p:create(0, 4, "11:22:33:44:55:66")
+ *     net0 = p2p:create(0, "ds-max=4", "mac-addr=11:22:33:44:55:66")
  *
  */

@@ -31,6 +31,8 @@
 
 #include <l4/util/assert.h>
 
+#include <ctype.h>
+#include <string>
 #include <cstring>
 #include <climits>
 #include <getopt.h>
@@ -857,6 +859,36 @@ public:
     L4Re::chksys(L4Re::Env::env()->main_thread()->register_del_irq(c));
   }
 
+  /**
+   * Convert colon-delimited MAC address string into numeric MAC address
+   *
+   * \param      text   MAC address string to parse (i.e. "X:XX:XX:x:xx:xX").
+   * \param[out] mac    Output buffer for MAC address.
+   *
+   * \retval L4_EOK     Success
+   * \retval -L4_EINVAL Invalid MAC address supplied.
+   */
+  long text_to_mac(char const *text, Mac_address &mac)
+  {
+    char const *t = text;
+    char const *next = text;
+
+    for (int i = 0; i < 6; i++)
+      {
+        if (isxdigit(t[0]) && isxdigit(t[1]) && t[2] == (i < 5 ? ':' : '\0'))
+          next += 3;
+        else if (isxdigit(t[0]) && t[1] == (i < 5 ? ':' : '\0'))
+          next += 2;
+        else
+          return -L4_EINVAL;
+
+        mac[i] = (l4_uint8_t)std::stoul(t, nullptr, 16);
+        t = next;
+      }
+
+    return L4_EOK;
+  }
+
   long op_create(L4::Factory::Rights, L4::Ipc::Cap<void> &res,
                  l4_umword_t type, L4::Ipc::Varg_list_ref va)
   {
@@ -883,15 +915,11 @@ public:
     if (opt.is_of<char const *>())
       {
         has_mac = true;
-        int e = sscanf(opt.value<char const *>(),
-                       "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
-                       &mac[0], &mac[1],
-                       &mac[2], &mac[3],
-                       &mac[4], &mac[5]);
 
-        if (e != 6)
+        if (text_to_mac(opt.value<char const *>(), mac))
           {
-            printf("warning: second parameter is not a valid mac address\n");
+            printf("warning: second parameter is not a valid mac address. "
+                   "Must be of the form 'X:XX:XX:x:xx:xX'.\n");
             return -L4_EINVAL;
           }
       }

@@ -868,10 +868,11 @@ public:
     if (!opt.is_of_int())
       return -L4_EINVAL;
 
-    unsigned num_ds = opt.value<l4_mword_t>();
-    if (num_ds == 0 || num_ds > 80)
+    l4_mword_t num_ds = opt.value<l4_mword_t>();
+    if (num_ds <= 0 || num_ds > 80)
       {
-        printf("warning: client requested invalid number of data spaces: 0 < %u <= 80\n", num_ds);
+        printf("warning: client requested invalid number"
+               " of data spaces: 0 < %ld <= 80\n", num_ds);
         return -L4_EINVAL;
       }
 

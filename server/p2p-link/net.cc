@@ -232,6 +232,9 @@ public:
   {
     for (Virtqueue &q: _q)
       q.disable();
+
+    reset_queue_config(0, _vq_max);
+    reset_queue_config(1, _vq_max);
   }
 
   bool available()

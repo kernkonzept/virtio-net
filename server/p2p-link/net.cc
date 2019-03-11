@@ -164,7 +164,7 @@ public:
 
   explicit Virtio_net(unsigned vq_max)
   : L4virtio::Svr::Device(&_dev_config),
-    _dev_config(0x44, L4VIRTIO_ID_NET, 2),
+    _dev_config(L4VIRTIO_VENDOR_KK, L4VIRTIO_ID_NET, 2),
     _vq_max(vq_max), _enabled_features(0), _poll_mode(false)
 #ifdef CONFIG_STATS
     , num_tx(0), num_rx(0), num_dropped(0), num_irqs(0)

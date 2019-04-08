@@ -15,8 +15,8 @@
  *
  * ## Building and Configuration
  *
- * The virtual network p2p server can be build using the L4Re build system.
- * Just place this project into your `pkg` directory.
+ * The virtual network p2p server can be built using the L4Re build system by
+ * placing this project into the `pkg` directory.
  *
  * ## Starting the service
  *
@@ -81,7 +81,7 @@
  *   Specify the MAC address of the endpoint where <mac_address> is of
  *   the form X:XX:Xx:x:xx:xX.
  *
- * If the `create()` call is successfull a new capability which references a
+ * If the `create()` call is successful a new capability which references a
  * virtual network p2p server port is returned. A client uses this capability
  * to talk to the virtual network p2p server using the virtio network protocol.
  *

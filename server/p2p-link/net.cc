@@ -216,10 +216,15 @@ public:
 
   void register_single_driver_irq()
   {
-    kick_guest_irq = L4Re::Util::Unique_cap<L4::Irq>(
+    _kick_guest_irq = L4Re::Util::Unique_cap<L4::Irq>(
        L4Re::chkcap(server_iface()->template rcv_cap<L4::Irq>(0)));
 
     L4Re::chksys(server_iface()->realloc_rcv_cap(0));
+  }
+
+  void trigger_driver_config_irq() const override
+  {
+    _kick_guest_irq->trigger();
   }
 
   Server_iface *server_iface() const
@@ -304,7 +309,7 @@ public:
     // we do not care about this anywhere, so skip
     // _device_config->irq_status |= 1;
 
-    kick_guest_irq->trigger();
+    _kick_guest_irq->trigger();
 #ifdef CONFIG_STATS
     ++num_irqs;
 #endif
@@ -349,7 +354,7 @@ private:
 
   unsigned _vq_max;
   Virtqueue _q[2];
-  L4Re::Util::Unique_cap<L4::Irq> kick_guest_irq;
+  L4Re::Util::Unique_cap<L4::Irq> _kick_guest_irq;
   L4::Cap<L4::Irq> _host_irq;
   Features _enabled_features;
   bool _poll_mode;

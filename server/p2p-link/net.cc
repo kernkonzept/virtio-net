@@ -968,7 +968,7 @@ public:
     if (type != 0)
       return -L4_EINVAL;
 
-    for (L4::Ipc::Varg opt = va.next(); !opt.is_nil(); opt = va.next())
+    for (L4::Ipc::Varg opt: va)
       {
         std::string mac_str;
 

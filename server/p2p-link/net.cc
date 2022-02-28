@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2018 Kernkonzept GmbH.
+ * Copyright (C) 2012-2018, 2022 Kernkonzept GmbH.
  * Author(s): Alexander Warg <alexander.warg@kernkonzept.com>
  *            Andreas Wiese <andreas.wiese@kernkonzept.com>
  *
@@ -42,6 +42,14 @@
 #include <debug.h>
 #include <checksum.h>
 
+
+//#define CONFIG_STATS 1
+//#define CONFIG_BENCHMARK 1
+
+#ifdef CONFIG_STATS
+  #include <unistd.h>
+#endif
+
 using cxx::access_once;
 using L4virtio::Svr::Data_buffer;
 using L4virtio::Svr::Request_processor;
@@ -66,9 +74,6 @@ struct Virtqueue : L4virtio::Svr::Virtqueue
   }
 
 };
-
-//#define CONFIG_STATS 1
-//#define CONFIG_BENCHMARK 1
 
 enum
 {
@@ -1056,18 +1061,19 @@ public:
 };
 
 #ifdef CONFIG_STATS
-static void *stats_thread_loop(void *)
+static void *stats_thread_loop(void *data)
 {
+  Sock_pair *s = (Sock_pair *)data;
   for (;;)
     {
       sleep(1);
-      for (unsigned i = 0; i < net.Num_ports; ++i)
+      for (unsigned i = 0; i < Sock_pair::Nports; ++i)
         {
-          Virtio_net *p = &net.port[i];
+          Virtio_net *p = s->port[i];
           printf("%s: tx:%ld rx:%ld drp:%ld irqs:%ld ri:%d:%d  ",
                  p->name, p->num_tx, p->num_rx, p->num_dropped, p->num_irqs,
-                 p->_device_config.status().running() ? (unsigned)p->_q[0].avail->idx : -1,
-                 (unsigned)p->_q[0].current_avail);
+                 p->_dev_config.status().running() ? (unsigned)p->_q[0].get_avail_idx() : -1,
+                 (unsigned)p->_q[0].get_tail_avail_idx());
         }
       printf("\n");
     }
@@ -1129,7 +1135,7 @@ run(int argc, char *const *argv)
 
 #ifdef CONFIG_STATS
   pthread_t stats_thread;
-  pthread_create(&stats_thread, NULL, stats_thread_loop, NULL);
+  pthread_create(&stats_thread, NULL, stats_thread_loop, s);
 #endif
 
   server.loop();

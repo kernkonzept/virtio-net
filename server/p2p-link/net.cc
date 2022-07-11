@@ -2,6 +2,7 @@
  * Copyright (C) 2012-2018, 2022 Kernkonzept GmbH.
  * Author(s): Alexander Warg <alexander.warg@kernkonzept.com>
  *            Andreas Wiese <andreas.wiese@kernkonzept.com>
+ *            Manuel von Oltersdorff-Kalettka <manuel.kalettka@kernkonzept.com>
  *
  * This file is distributed under the terms of the GNU General Public
  * License, version 2.  Please see the COPYING-GPL-2 file for details.
@@ -54,6 +55,10 @@ using cxx::access_once;
 using L4virtio::Svr::Data_buffer;
 using L4virtio::Svr::Request_processor;
 
+using Ds_vector = std::vector<L4::Cap<L4Re::Dataspace>>;
+static std::shared_ptr<Ds_vector> trusted_dataspaces;
+
+
 // Add some preleminary versions of consumed and finish to allow
 // burst commit of buffers
 struct Virtqueue : L4virtio::Svr::Virtqueue
@@ -84,8 +89,9 @@ enum
 
 static struct option options[] =
 {
-    {"size", 1, 0, 's'},  // size of in/out queue == #buffers in queue
-    {"poll", 1, 0, 'p'},  // enable polling mode
+    {"size",        1, 0, 's'},  // size of in/out queue == #buffers in queue
+    {"poll",        1, 0, 'p'},  // enable polling mode
+    {"register-ds", 1, 0, 'd'},  // register a trusted dataspace
     {0, 0, 0, 0}
 };
 
@@ -923,7 +929,13 @@ public:
     _poll_interval(0)
   {
     for (Virtio_net *&p: port)
-      p = new Virtio_net(vq_max);
+      {
+        p = new Virtio_net(vq_max);
+        p->add_trusted_dataspaces(trusted_dataspaces);
+
+        if (!trusted_dataspaces->empty())
+          p->enable_trusted_ds_validation();
+      }
 
     pipe[0] = new Pipe(port[0], port[1]);
     pipe[1] = new Pipe(port[1], port[0]);
@@ -1095,7 +1107,7 @@ run(int argc, char *const *argv)
 
   printf("Hello from l4vio_net_p2p\n");
 
-  while( (opt = getopt_long(argc, argv, "s:p:", options, &index)) != -1)
+  while( (opt = getopt_long(argc, argv, "s:p:d:", options, &index)) != -1)
     {
       switch (opt)
         {
@@ -1119,6 +1131,14 @@ run(int argc, char *const *argv)
               return 1;
             }
           break;
+        case 'd':
+          {
+            L4::Cap<L4Re::Dataspace> ds =
+              L4Re::chkcap(L4Re::Env::env()->get_cap<L4Re::Dataspace>(optarg),
+                           "Find a dataspace capability.\n");
+            trusted_dataspaces->push_back(ds);
+            break;
+          }
         }
     }
 
@@ -1146,6 +1166,7 @@ run(int argc, char *const *argv)
 int
 main(int argc, char *const *argv)
 {
+  trusted_dataspaces = std::make_shared<Ds_vector>();
   try
     {
       return run(argc, argv);

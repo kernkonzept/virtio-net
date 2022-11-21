@@ -8,7 +8,7 @@ SPDXVersion: SPDX-2.1
 DataLicense: CC0-1.0
 SPDXID: SPDXRef-Document
 DocumentNamespace: spdx:kernkonzept/virtio-net-382c26ea-61e3-11e9-9b84-2784e724081d
-DocumentName: LICENSE.spdx
+DocumentName: virtio-net
 
 Creator: Organization: Kernkonzept GmbH (info@kernkonzept.com)
 

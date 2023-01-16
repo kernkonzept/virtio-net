@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2018, 2022 Kernkonzept GmbH.
+ * Copyright (C) 2012-2020, 2022 Kernkonzept GmbH.
  * Author(s): Alexander Warg <alexander.warg@kernkonzept.com>
  *            Andreas Wiese <andreas.wiese@kernkonzept.com>
  *            Manuel von Oltersdorff-Kalettka <manuel.kalettka@kernkonzept.com>

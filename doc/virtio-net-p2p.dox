@@ -78,7 +78,7 @@
  *
  * * `"mac-addr=<mac_address>"`
  *
- *   Specify the MAC address of the endpoint where <mac_address> is of
+ *   Specify the MAC address of the endpoint where `<mac_address>` is of
  *   the form X:XX:Xx:x:xx:xX.
  *
  * If the `create()` call is successful a new capability which references a

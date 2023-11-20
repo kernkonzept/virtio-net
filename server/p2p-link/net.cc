@@ -225,7 +225,7 @@ public:
     _dev_config.reset_hdr();
   }
 
-  void register_single_driver_irq()
+  void register_single_driver_irq() override
   {
     _kick_guest_irq = L4Re::Util::Unique_cap<L4::Irq>(
        L4Re::chkcap(server_iface()->template rcv_cap<L4::Irq>(0)));
@@ -238,13 +238,13 @@ public:
     _kick_guest_irq->trigger();
   }
 
-  Server_iface *server_iface() const
+  Server_iface *server_iface() const override
   { return L4::Epiface::server_iface(); }
 
-  L4::Cap<L4::Irq> device_notify_irq() const
+  L4::Cap<L4::Irq> device_notify_irq() const override
   { return _host_irq; }
 
-  void reset()
+  void reset() override
   {
     for (Virtqueue &q: _q)
       q.disable();
@@ -267,7 +267,7 @@ public:
   template<typename T, unsigned N >
   static unsigned array_length(T (&)[N]) { return N; }
 
-  int reconfig_queue(unsigned index)
+  int reconfig_queue(unsigned index) override
   {
     if (index >= array_length(_q))
       return -L4_ERANGE;
@@ -282,7 +282,7 @@ public:
     return -L4_EINVAL;
   }
 
-  bool check_queues()
+  bool check_queues() override
   {
     for (Virtqueue &q: _q)
       if (!q.ready())

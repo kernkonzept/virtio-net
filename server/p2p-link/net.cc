@@ -444,13 +444,9 @@ private:
     for (Virtio_net *p: port)
       p->handle_mem_cmd_write();
 
-    for (bool more = true; more; )
-      {
-        more = false;
-        for (auto p: pipe)
-          if (L4_LIKELY(p->ready()))
-            more |= p->copy();
-      }
+    for (auto p: pipe)
+      if (L4_LIKELY(p->ready()))
+        p->copy();
 
     _poll_next += _poll_interval;
     server_iface()->add_timeout(this, _poll_next);
@@ -807,7 +803,7 @@ public:
 
     unsigned nmerge;
 
-    bool copy()
+    void copy()
     {
       try
         {
@@ -816,11 +812,11 @@ public:
             {
               nmerge = 0;
               if (L4_UNLIKELY(!start_tx_packet()))
-                return false;
+                return;
             }
 
           if (!rx.head && L4_UNLIKELY(!start_rx_packet()))
-            return false;
+            return;
 
           Checksum_computer csum(&tx, &rx);
 
@@ -856,10 +852,10 @@ public:
 
                   nmerge = 0;
                   if (L4_UNLIKELY(!start_tx_packet()))
-                    return false;
+                    return;
 
                   if (L4_UNLIKELY(!start_rx_packet()))
-                    return false;
+                    return;
 
                   continue;
                 }
@@ -880,7 +876,7 @@ public:
                            this, nmerge, total);
 
                   if (L4_UNLIKELY(!start_rx_packet()))
-                    return false;
+                    return;
 
                   continue;
                 }
@@ -912,7 +908,7 @@ public:
                      e.error, rx.dev, rx.q);
             }
 
-          return false;
+          return;
         }
     }
   };

@@ -321,10 +321,28 @@ public:
     // we do not care about this anywhere, so skip
     // _device_config->irq_status |= 1;
 
-    _kick_guest_irq->trigger();
+    if (_do_kick)
+      {
+        _kick_guest_irq->trigger();
 #ifdef CONFIG_STATS
-    ++num_irqs;
+        ++num_irqs;
 #endif
+      }
+    else
+      _kick_pending = true;
+  }
+
+  void kick_emit_and_enable(L4virtio::Svr::Virtqueue *queue)
+  {
+    _do_kick = true;
+    if (_kick_pending)
+      notify_queue(queue);
+  }
+
+  void kick_disable_and_remember()
+  {
+    _do_kick = false;
+    _kick_pending = false;
   }
 
   void enable_poll_mode()
@@ -370,6 +388,9 @@ private:
   L4::Cap<L4::Irq> _host_irq;
   Features _enabled_features;
   bool _poll_mode;
+
+  bool _do_kick = true;
+  bool _kick_pending = false;
 };
 
 static L4Re::Util::Registry_server<L4Re::Util::Br_manager_timeout_hooks> server;
@@ -1042,9 +1063,15 @@ public:
         for (auto *p: pipe)
           p->disable_notify();
 
+        for (auto *p: port)
+          p->kick_disable_and_remember();
+
         for (auto *p: pipe)
-          if (L4_LIKELY(p->ready()))
+          while (p->work_pending())
             p->copy();
+
+        for (auto *p: port)
+          p->kick_emit_and_enable(p->tx_q());
 
         for (auto *p: pipe)
           p->enable_notify();

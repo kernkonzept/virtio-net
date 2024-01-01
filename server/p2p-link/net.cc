@@ -265,8 +265,9 @@ public:
     L4Re::chksys(server_iface()->realloc_rcv_cap(0));
   }
 
-  void trigger_driver_config_irq() const override
+  void trigger_driver_config_irq() override
   {
+    _dev_config.add_irq_status(L4VIRTIO_IRQ_STATUS_CONFIG);
     _kick_guest_irq->trigger();
   }
 
@@ -345,12 +346,10 @@ public:
 
   void notify_queue(L4virtio::Virtqueue *queue)
   {
-    // we do not care about this anywhere, so skip
-    // _device_config->irq_status |= 1;
-
     Virtqueue *q = static_cast<Virtqueue*>(queue);
     if (q->kick_queue())
       {
+        _dev_config.add_irq_status(L4VIRTIO_IRQ_STATUS_VRING);
         _kick_guest_irq->trigger();
         inc_num_irqs();
       }
@@ -365,6 +364,7 @@ public:
 
     if (kick_pending)
       {
+        _dev_config.add_irq_status(L4VIRTIO_IRQ_STATUS_VRING);
         _kick_guest_irq->trigger();
         inc_num_irqs();
       }

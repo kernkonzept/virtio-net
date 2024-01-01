@@ -1042,13 +1042,9 @@ public:
         for (auto *p: pipe)
           p->disable_notify();
 
-        for (bool more = true; more; )
-          {
-            more = false;
-            for (auto *p: pipe)
-              if (L4_LIKELY(p->ready()))
-                more |= p->copy();
-          }
+        for (auto *p: pipe)
+          if (L4_LIKELY(p->ready()))
+            p->copy();
 
         for (auto *p: pipe)
           p->enable_notify();

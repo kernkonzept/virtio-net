@@ -43,6 +43,7 @@
 #include <debug.h>
 #include <checksum.h>
 
+#include <terminate_handler-l4>
 
 //#define CONFIG_STATS 1
 //#define CONFIG_BENCHMARK 1
@@ -1093,8 +1094,7 @@ static void *stats_thread_loop(void *data)
 };
 #endif
 
-static int
-run(int argc, char *const *argv)
+int main(int argc, char *const *argv)
 {
   Dbg info;
   Dbg warn(Dbg::Warn);
@@ -1106,6 +1106,8 @@ run(int argc, char *const *argv)
   int poll_interval = 0;
 
   printf("Hello from l4vio_net_p2p\n");
+
+  trusted_dataspaces = std::make_shared<Ds_vector>();
 
   while( (opt = getopt_long(argc, argv, "s:p:d:", options, &index)) != -1)
     {
@@ -1160,29 +1162,4 @@ run(int argc, char *const *argv)
 
   server.loop();
   return 0;
-}
-
-
-int
-main(int argc, char *const *argv)
-{
-  trusted_dataspaces = std::make_shared<Ds_vector>();
-  try
-    {
-      return run(argc, argv);
-    }
-  catch (L4::Runtime_error const &e)
-    {
-      Err().printf("%s: %s\n", e.str(), e.extra_str());
-    }
-  catch (L4::Base_exception const &e)
-    {
-      Err().printf("Error: %s\n", e.str());
-    }
-  catch (std::exception const &e)
-    {
-      Err().printf("Error: %s\n", e.what());
-    }
-
-  return 2;
 }

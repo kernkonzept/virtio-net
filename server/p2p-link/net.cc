@@ -338,7 +338,7 @@ public:
       q.disable_notify();
   }
 
-  char const *name;
+  char const *name = 0;
 
   template<typename REG>
   void register_client(REG *registry, L4::Cap<L4::Irq> host_irq,
@@ -487,7 +487,7 @@ private:
   Host_irq _host_irq;
   Del_cap_irq _del_cap_irq;
   unsigned _poll_interval;
-  l4_kernel_clock_t _poll_next;
+  l4_kernel_clock_t _poll_next = 0;
 
 public:
   void enable_timer(unsigned poll_interval)
@@ -528,7 +528,7 @@ public:
   {
     Virtqueue::Head_desc head;
     Buffer pkt;
-    Virtio_net::Hdr *hdr;
+    Virtio_net::Hdr *hdr = nullptr;
 
     /// Pointer to the device the end point belongs to
     Virtio_net *dev;
@@ -755,7 +755,7 @@ public:
 
   struct Pipe
   {
-    l4_uint32_t total;
+    l4_uint32_t total = 0;
     End_point tx;
     End_point rx;
 
@@ -801,7 +801,7 @@ public:
       return rx.start_packet(false, &total, nmerge);
     }
 
-    unsigned nmerge;
+    unsigned nmerge = 0;
 
     void copy()
     {

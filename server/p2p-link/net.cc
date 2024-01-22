@@ -79,6 +79,32 @@ struct Virtqueue : L4virtio::Svr::Virtqueue
     o->notify_queue(this);
   }
 
+  bool kick_queue()
+  {
+    if (no_notify_guest())
+      return false;
+
+    if (_do_kick)
+      return true;
+
+    _kick_pending = true;
+    return false;
+  }
+
+  bool kick_enable_get_pending()
+  {
+    _do_kick = true;
+    return _kick_pending;
+  }
+
+  void kick_disable_and_remember()
+  {
+    _do_kick = false;
+    _kick_pending = false;
+  }
+
+  bool _do_kick = true;
+  bool _kick_pending = false;
 };
 
 enum
@@ -319,33 +345,35 @@ public:
 
   void notify_queue(L4virtio::Virtqueue *queue)
   {
-    //printf("%s\n", __func__);
-    if (queue->no_notify_guest())
-      return;
-
     // we do not care about this anywhere, so skip
     // _device_config->irq_status |= 1;
 
-    if (_do_kick)
+    Virtqueue *q = static_cast<Virtqueue*>(queue);
+    if (q->kick_queue())
       {
         _kick_guest_irq->trigger();
         inc_num_irqs();
       }
-    else
-      _kick_pending = true;
   }
 
-  void kick_emit_and_enable(L4virtio::Svr::Virtqueue *queue)
+  void kick_emit_and_enable()
   {
-    _do_kick = true;
-    if (_kick_pending)
-      notify_queue(queue);
+    bool kick_pending = false;
+
+    for (auto &q : _q)
+      kick_pending |= q.kick_enable_get_pending();
+
+    if (kick_pending)
+      {
+        _kick_guest_irq->trigger();
+        inc_num_irqs();
+      }
   }
 
   void kick_disable_and_remember()
   {
-    _do_kick = false;
-    _kick_pending = false;
+    for (auto &q : _q)
+      q.kick_disable_and_remember();
   }
 
   void enable_poll_mode()
@@ -391,9 +419,6 @@ private:
   L4::Cap<L4::Irq> _host_irq;
   Features _enabled_features;
   bool _poll_mode;
-
-  bool _do_kick = true;
-  bool _kick_pending = false;
 };
 
 static L4Re::Util::Registry_server<L4Re::Util::Br_manager_timeout_hooks> server;
@@ -1074,7 +1099,7 @@ public:
             p->copy();
 
         for (auto *p: port)
-          p->kick_emit_and_enable(p->tx_q());
+          p->kick_emit_and_enable();
 
         for (auto *p: pipe)
           p->enable_notify();

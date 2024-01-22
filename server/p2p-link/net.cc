@@ -338,7 +338,7 @@ public:
       q.disable_notify();
   }
 
-  char const *name = 0;
+  char const *name = nullptr;
 
   template<typename REG>
   void register_client(REG *registry, L4::Cap<L4::Irq> host_irq,

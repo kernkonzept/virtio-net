@@ -164,6 +164,11 @@ public:
   unsigned long num_rx;
   unsigned long num_dropped;
   unsigned long num_irqs;
+
+  void inc_num_irqs()
+  { num_irqs++ }
+#else
+  void inc_num_irqs() {}
 #endif
 
   struct Net_config_space
@@ -324,9 +329,7 @@ public:
     if (_do_kick)
       {
         _kick_guest_irq->trigger();
-#ifdef CONFIG_STATS
-        ++num_irqs;
-#endif
+        inc_num_irqs();
       }
     else
       _kick_pending = true;

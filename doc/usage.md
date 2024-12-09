@@ -1,10 +1,53 @@
-# l4vio_net_p2p, a virtual network point-to-point link {#l4re_servers_virtio_net_p2p}
+# Virtio Net P2P, a virtual network point-to-point link {#l4re_servers_virtio_net_p2p}
+
+[comment]: # (This is a generated file. Do not change it.)
+[comment]: # (Instead, change capdb.yml.)
 
 The virtual network point-to-point server (p2p) connects two clients with a
 virtual network connection. It uses virtio as the transport mechanism. Each
 virtual network p2p endpoint implements the device-side of a virtio network
-device. Each client can access its endpoint using the driver-side semantics
-of a virtio network device.
+device. Each client can access its endpoint using the driver-side semantics of a
+virtio network device.
+
+
+## Capabilities
+
+* `dataspace`
+
+  Trusted dataspaces
+
+  Multiple capability names can be provided by the `--register-ds` command line
+  parameter.
+
+* `svr`
+
+  Server Capability of application. Endpoint for IPC calls
+
+  Mandatory capability.
+
+
+## Command Line Options
+
+The following command line options are supported:
+
+* `-p <num_usec>`, `--poll <num_usec>`
+
+  Enable polling mode and set the poll interval. IRQ notification is disabled
+  for queues while in polling mode.
+
+  Numerical value.
+    * Must be a positive integer specified in microseconds.
+
+
+* `-s <num>`, `--size <num>`
+
+  Set the maximum queue size for the device-side virtio queues.
+
+  Numerical value.
+    * Must be a power of 2 in the range of 1 to 32768 inclusive.
+
+
+  Default: `256`
 
 ## Building and Configuration
 
@@ -15,73 +58,69 @@ placing this project into the `pkg` directory.
 
 The virtual network p2p server can be started with Lua like this:
 
-    local p2p = L4.default_loader:new_channel();
-    L4.default_loader:start(
-    {
-      caps = {
-        svr = p2p:svr(),
-      },
-    },
-    "rom/l4vio_net_p2p [<options>]");
+```lua
+local p2p = L4.default_loader:new_channel();
+L4.default_loader:start(
+{
+  caps = {
+    svr = p2p:svr(),
+  },
+},
+"rom/l4vio_net_p2p [<options>]");
+```
 
-First an IPC gate (`p2p`) is created which is used between the virtual
-network p2p server and a client to create new virtual ports. The server-side
-is assigned to the mandatory `svr` capability of the virtual network p2p
-server. See the section below on how to create a new virtual port and
-connect a client to it.
+First an IPC gate (`p2p`) is created which is used between the virtual network
+p2p server and a client to create new virtual ports. The server-side is assigned
+to the mandatory `svr` capability of the virtual network p2p server. See the
+section below on how to create a new virtual port and connect a client to it.
 
-### Options
+## Virtual p2p port
 
-The following command line options are supported:
+Prior to connecting a client to a virtual network p2p server port it has to be
+created using the following Lua function. It has to be called on the client side
+of the IPC gate capability whose server side is bound to the virtual network p2p
+server.
 
-* `-p <num_usec>`, `--poll <num_usec>`
+The "key=value" pairs passed to create() can be omitted and their order is not
+important.
 
-  Enable polling mode and set the poll interval. IRQ notification is disabled
-  for queues while in polling mode. Must be a positive integer specified in
-  microseconds.
-
-* `-s <num>`, `--size <num>`
-
-  Set the maximum queue size for the device-side virtio queues.
-  Must be a power of 2 in the range of 1 to 32768 inclusive.
-
-## Connecting a client
-Prior to connecting a client to a virtual network p2p server port it has to
-be created using the following Lua function. It has to be called on the
-client side of the IPC gate capability whose server side is bound to the
-virtual network p2p server.
-
-The "key=value" pairs passed to create() can be omitted and their order is
-not important.
-
-    create(obj_type, ["ds-max=<max>" , "mac=<mac_address>"])
-
-* `obj_type`
-
-  The type of object that should be created by the server. The type must be
-  a positive integer. Currently the following objects are supported:
-  * `0`: Virtual p2p port
+Call:   `create(0 [, "ds-max=<max>", "mac=<addr>"])`
 
 * `"ds-max=<max>"`
 
-  Specifies the upper limit of the number of dataspaces the client is
-  allowed to register with the server for virtio DMA. Must be in the range of
-  1 to 80 inclusive. The default value is 2.
+  Specifies the upper limit of the number of dataspaces the client is allowed to
+  register with the server for virtio DMA.
 
-* `"mac=<mac_address>"`
+  Numerical value.
+    * Must be in the range of 1 to 80 inclusive.
 
-  Specify the MAC address of the endpoint where `<mac_address>` is of
-  the form X:XX:Xx:x:xx:xX.
 
-If the `create()` call is successful a new capability which references a
-virtual network p2p server port is returned. A client uses this capability
-to talk to the virtual network p2p server using the virtio network protocol.
+  Default: `2`
 
-A couple of examples on how to create ports with different properties are
-listed below.
+* `"mac=<addr>"`
 
-    -- two normal ports with at most 4 data spaces
-    net0 = p2p:create(0, "ds-max=4")
-    net1 = p2p:create(0, "ds-max=4")
-    -- normal port with 4 data spaces and MAC address
-    net0 = p2p:create(0, "ds-max=4", "mac=11:22:33:44:55:66")
+  Specify the MAC address of the endpoint where `<mac_address>` is of the form
+  xx:xx:xx:xx:xx:xx.
+
+  String value.
+    * Must be in the form xx:xx:xx:xx:xx:xx.
+
+If the `create()` call is successful a new capability which references a virtual
+network p2p server port is returned. A client uses this capability to talk to
+the virtual network p2p server using the virtio network protocol.
+
+
+
+## Examples
+
+A couple of examples on how to create ports with different properties are listed
+below.
+
+```lua
+-- two normal ports with at most 4 data spaces
+net0 = p2p:create(0, "ds-max=4")
+net1 = p2p:create(0, "ds-max=4")
+-- normal port with 4 data spaces and MAC address
+net0 = p2p:create(0, "ds-max=4", "mac=11:22:33:44:55:66")
+```
+

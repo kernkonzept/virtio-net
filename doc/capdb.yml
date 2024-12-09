@@ -1,0 +1,125 @@
+name: "Virtio Net P2P, a virtual network point-to-point link"
+binary-name: l4vio_net_p2p
+anchor: l4re_servers_virtio_net_p2p
+desc: |
+  The virtual network point-to-point server (p2p) connects two clients with a
+  virtual network connection. It uses virtio as the transport mechanism. Each
+  virtual network p2p endpoint implements the device-side of a virtio network
+  device. Each client can access its endpoint using the driver-side semantics
+  of a virtio network device.
+text-before-cmds: |
+  The following command line options are supported:
+cmds:
+  - name: 'poll'
+    short: 'p'
+    metavar: 'num_usec'
+    desc: |
+      Enable polling mode and set the poll interval. IRQ notification is
+      disabled for queues while in polling mode.
+    type: int
+    conditions:
+      - desc: |
+          Must be a positive integer specified in microseconds.
+        conditions:
+        - v > 0
+  - name: 'size'
+    short: 's'
+    metavar: 'num'
+    desc: |
+      Set the maximum queue size for the device-side virtio queues.
+    type: int
+    conditions:
+      - desc: |
+          Must be a power of 2 in the range of 1 to 32768 inclusive.
+        conditions:
+          - 1 <= v
+          - v <= 32768
+          - math.ceil(math.log2(v)) == math.floor(math.log2(v))
+    default: 0x100
+text-after-cmds: |
+  ## Building and Configuration
+
+  The virtual network p2p server can be built using the L4Re build system by
+  placing this project into the `pkg` directory.
+
+  ## Starting the service
+
+  The virtual network p2p server can be started with Lua like this:
+
+  ```lua
+  local p2p = L4.default_loader:new_channel();
+  L4.default_loader:start(
+  {
+    caps = {
+      svr = p2p:svr(),
+    },
+  },
+  "rom/l4vio_net_p2p [<options>]");
+  ```
+
+  First an IPC gate (`p2p`) is created which is used between the virtual
+  network p2p server and a client to create new virtual ports. The server-side
+  is assigned to the mandatory `svr` capability of the virtual network p2p
+  server. See the section below on how to create a new virtual port and
+  connect a client to it.
+caps:
+  - name: 'dataspace'
+    desc: Trusted dataspaces
+    protocol: 'dataspace'
+    multiple: true
+    provided-by-cmd: 'register-ds'
+
+server-cap-name: svr
+factory:
+  - obj-type: '0'
+    return-type: Virtio_net_port
+    name: Virtual p2p port
+    desc: |
+      Prior to connecting a client to a virtual network p2p server port it has
+      to be created using the following Lua function. It has to be called on
+      the client side of the IPC gate capability whose server side is bound to
+      the virtual network p2p server.
+
+      The "key=value" pairs passed to create() can be omitted and their order
+      is not important.
+    post-desc: |
+      If the `create()` call is successful a new capability which references
+      a virtual network p2p server port is returned. A client uses this
+      capability to talk to the virtual network p2p server using the virtio
+      network protocol.
+    params:
+      - name: 'ds-max'
+        metavar: 'max'
+        desc: |
+          Specifies the upper limit of the number of dataspaces the client is
+          allowed to register with the server for virtio DMA.
+        type: int
+        conditions:
+          - desc: |
+              Must be in the range of 1 to 80 inclusive.
+            conditions:
+              - 1 <= v
+              - v <= 80
+        default: 2
+      - name: 'mac'
+        metavar: 'addr'
+        type: str
+        desc: |
+          Specify the MAC address of the endpoint where `<mac_address>` is of
+          the form xx:xx:xx:xx:xx:xx.
+        conditions:
+          - desc: Must be in the form xx:xx:xx:xx:xx:xx.
+            conditions:
+              - re.fullmatch(r"([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}", v)
+
+examples: |
+  A couple of examples on how to create ports with different properties are
+  listed below.
+
+  ```lua
+  -- two normal ports with at most 4 data spaces
+  net0 = p2p:create(0, "ds-max=4")
+  net1 = p2p:create(0, "ds-max=4")
+  -- normal port with 4 data spaces and MAC address
+  net0 = p2p:create(0, "ds-max=4", "mac=11:22:33:44:55:66")
+  ```

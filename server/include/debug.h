@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2017 Kernkonzept GmbH.
+ * Copyright (C) 2012-2017, 2024 Kernkonzept GmbH.
  * Author(s): Alexander Warg <alexander.warg@kernkonzept.com>
  *            Adam Lackorzynski <adam.lackorzynski@kernkonzept.com>
  *

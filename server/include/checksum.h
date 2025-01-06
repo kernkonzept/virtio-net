@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Kernkonzept GmbH.
+ * Copyright (C) 2018, 2024 Kernkonzept GmbH.
  * Author(s): Andreas Wiese <andreas.wiese@kernkonzept.com>
  *
  * License: see LICENSE.spdx (in this directory or the directories above)

@@ -191,7 +191,7 @@ public:
   unsigned long num_irqs;
 
   void inc_num_irqs()
-  { num_irqs++ }
+  { num_irqs++; }
 #else
   void inc_num_irqs() {}
 #endif

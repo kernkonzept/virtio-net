@@ -62,7 +62,7 @@
  * The "key=value" pairs passed to create() can be omitted and their order is
  * not important.
  *
- *     create(obj_type, ["ds-max=<max>" , "mac-addr=<mac_address>"])
+ *     create(obj_type, ["ds-max=<max>" , "mac=<mac_address>"])
  *
  * * `obj_type`
  *
@@ -76,7 +76,7 @@
  *   allowed to register with the server for virtio DMA. Must be in the range of
  *   1 to 80 inclusive. The default value is 2.
  *
- * * `"mac-addr=<mac_address>"`
+ * * `"mac=<mac_address>"`
  *
  *   Specify the MAC address of the endpoint where `<mac_address>` is of
  *   the form X:XX:Xx:x:xx:xX.
@@ -92,6 +92,6 @@
  *     net0 = p2p:create(0, "ds-max=4")
  *     net1 = p2p:create(0, "ds-max=4")
  *     -- normal port with 4 data spaces and MAC address
- *     net0 = p2p:create(0, "ds-max=4", "mac-addr=11:22:33:44:55:66")
+ *     net0 = p2p:create(0, "ds-max=4", "mac=11:22:33:44:55:66")
  *
  */

@@ -1050,13 +1050,13 @@ public:
               }
             continue;
           }
-        if (parse_string_param(opt, "mac-addr=", &mac_str))
+        if (parse_string_param(opt, "mac=", &mac_str))
           {
             has_mac = true;
 
             if (text_to_mac(mac_str.c_str(), mac) < 0)
               {
-                printf("Invalid value for parameter 'mac-addr'. "
+                printf("Invalid value for parameter 'mac'. "
                        "Must be of the form 'X:XX:Xx:x:xx:xX'.\n");
                 return -L4_EINVAL;
               }

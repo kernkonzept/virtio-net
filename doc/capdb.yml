@@ -36,6 +36,17 @@ cmds:
           - v <= 32768
           - math.ceil(math.log2(v)) == math.floor(math.log2(v))
     default: 0x100
+  - name: 'register-ds'
+    short: 'd'
+    metavar: 'cap_name'
+    desc: |
+      Register a trusted dataspace capability. If this option is used, it is
+      not possible to communicate with the server via dataspaces other than the
+      registered ones.
+    type: cap
+    cap-name: 'dataspace'
+    protocol: 'dataspace'
+    multiple: true
 text-after-cmds: |
   ## Building and Configuration
 

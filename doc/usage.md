@@ -49,6 +49,16 @@ The following command line options are supported:
 
   Default: `256`
 
+* `-d <cap_name>`, `--register-ds <cap_name>`
+
+  Register a trusted dataspace capability. If this option is used, it is not
+  possible to communicate with the server via dataspaces other than the
+  registered ones.
+
+  Can be used multiple times.
+
+  Name of a provided capability that adheres to the dataspace protocol.
+
 ## Building and Configuration
 
 The virtual network p2p server can be built using the L4Re build system by

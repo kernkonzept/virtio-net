@@ -45,7 +45,6 @@ cmds:
       registered ones.
     type: cap
     cap-name: 'dataspace'
-    protocol: 'dataspace'
     multiple: true
 text-after-cmds: |
   ## Building and Configuration
@@ -78,7 +77,6 @@ caps:
     desc: Trusted dataspaces
     protocol: 'dataspace'
     multiple: true
-    provided-by-cmd: 'register-ds'
 
 server-cap-name: svr
 factory:

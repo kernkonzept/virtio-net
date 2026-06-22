@@ -65,12 +65,12 @@ The following command line options are supported:
   Name of a provided capability that adheres to the dataspace protocol.
 
 <hr>
-## Building and Configuration
+## Building and Configuration {#l4re_servers_virtio_net_p2p_config}
 
 The virtual network p2p server can be built using the L4Re build system by
 placing this project into the `pkg` directory.
 
-## Starting the service
+## Starting the service {#l4re_servers_virtio_net_p2p_starting}
 
 The virtual network p2p server can be started with Lua like this:
 

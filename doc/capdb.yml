@@ -43,8 +43,10 @@ cmds:
       Register a trusted dataspace capability. If this option is used, it is
       not possible to communicate with the server via dataspaces other than the
       registered ones.
-    type: cap
-    cap-name: 'dataspace'
+    type: str
+    side-effects:
+      - type: 'expect-cap'
+        name: 'dataspace'
     multiple: true
 text-after-cmds: |
   ## Building and Configuration {#l4re_servers_virtio_net_p2p_config}

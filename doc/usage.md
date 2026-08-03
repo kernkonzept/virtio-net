@@ -20,8 +20,8 @@ virtio network device.
 
   Trusted dataspaces
 
-  Multiple capability names can be provided by the `--register-ds` command line
-  parameter.
+  Multiple capability names can be provided by the `-d <cap_name>`,
+  `--register-ds <cap_name>` command line parameter.
 
 * `svr`
 
@@ -62,7 +62,11 @@ The following command line options are supported:
 
   Can be used multiple times.
 
-  Name of a provided capability that adheres to the dataspace protocol.
+  This command has the following side effects:
+  - A capability with the given name is expected in the capability space of this
+  task.
+
+  String value.
 
 <hr>
 ## Building and Configuration {#l4re_servers_virtio_net_p2p_config}

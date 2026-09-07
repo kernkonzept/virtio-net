@@ -94,7 +94,11 @@ p2p server and a client to create new virtual ports. The server-side is assigned
 to the mandatory `svr` capability of the virtual network p2p server. See the
 section below on how to create a new virtual port and connect a client to it.
 
-## Virtual p2p port {#l4re_servers_virtio_net_p2p_param_virtual_p2p_port}
+
+<hr>
+## Factory Options {#l4re_servers_virtio_net_p2p_factory_options}
+
+### Virtual p2p port {#l4re_servers_virtio_net_p2p_param_virtual_p2p_port}
 
 Prior to connecting a client to a virtual network p2p server port it has to be
 created using the following Lua function. It has to be called on the client side

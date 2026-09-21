@@ -1140,6 +1140,74 @@ static void *stats_thread_loop(void *data)
 };
 #endif
 
+static int
+parse_args(int argc, char *const *argv, int *vq_max_num, int *poll_interval)
+{
+  int index;
+  opterr = 0; // prevent getopt_long() from printing its own error message
+  for (;;)
+    {
+      int opt = getopt_long(argc, argv, "s:p:d:", options, &index);
+      if (opt == -1)
+        {
+          if (optind < argc)
+            {
+              Err().printf("Unknown parameter '%s'\n", argv[optind]);
+              return -1;
+            }
+          break;
+        }
+
+      switch (opt)
+        {
+        case 's':
+          // QueueNumMax must be power of 2 between 1 and 0x8000
+          if (!parse_int_optstring(optarg, vq_max_num) || *vq_max_num < 1
+              || *vq_max_num > 32768 || (*vq_max_num & (*vq_max_num - 1)))
+            {
+              Err().printf("Max number of virtqueue buffers must be power of 2"
+                           " between 1 and 32768. Invalid value: %s\n", optarg);
+              return -1;
+            }
+          break;
+        case 'p':
+          if (!parse_int_optstring(optarg, poll_interval)
+              || *poll_interval <= 0)
+            {
+              Err().printf("Bad poll interval '%s' usec. Must be greater than"
+                           " 0.\n", optarg);
+              return -1;
+            }
+          break;
+        case 'd':
+          {
+            L4::Cap<L4Re::Dataspace> ds =
+              L4Re::Env::env()->get_cap<L4Re::Dataspace>(optarg);
+            if (!ds.is_valid())
+              {
+                Err().printf("Did not find capability for dataspace '%s'. "
+                             "Likely due to a wrong configuration of the"
+                             " capability table.\n", optarg);
+                return -1;
+              }
+
+            trusted_dataspaces->push_back(ds);
+            break;
+          }
+        default:
+          {
+            if (opt == ':')
+              Err().printf("Required argument missing to option '%s'.\n",
+                           argv[optind - 1]);
+            else if (opt == '?')
+              Err().printf("Unrecognized option '%s'.\n", argv[optind - 1]);
+            return -1;
+          }
+        }
+    }
+  return 0;
+}
+
 int main(int argc, char *const *argv)
 {
   Dbg info;
@@ -1147,48 +1215,15 @@ int main(int argc, char *const *argv)
 
   Dbg::set_level(0xf);
 
-  int opt, index;
+  trusted_dataspaces = std::make_shared<Ds_vector>();
+
   int vq_max_num = 0x100; // default value for data queues
   int poll_interval = 0;
 
+  if (parse_args(argc, argv, &vq_max_num, &poll_interval) < 0)
+    return EXIT_FAILURE;
+
   printf("Hello from l4vio_net_p2p\n");
-
-  trusted_dataspaces = std::make_shared<Ds_vector>();
-
-  while( (opt = getopt_long(argc, argv, "s:p:d:", options, &index)) != -1)
-    {
-      switch (opt)
-        {
-        case 's':
-          // QueueNumMax must be power of 2 between 1 and 0x8000
-          if (!parse_int_optstring(optarg, &vq_max_num) || vq_max_num < 1
-              || vq_max_num > 32768 || (vq_max_num & (vq_max_num - 1)))
-            {
-              printf("Max number of virtqueue buffers must be power of 2"
-                     " between 1 and 32768. Invalid value: %s\n",
-                     optarg);
-              return 1;
-            }
-          break;
-        case 'p':
-          if (!parse_int_optstring(optarg, &poll_interval)
-              || poll_interval <= 0)
-            {
-              printf("Bad poll interval '%s' usec. Must be greater than 0.\n",
-                     optarg);
-              return 1;
-            }
-          break;
-        case 'd':
-          {
-            L4::Cap<L4Re::Dataspace> ds =
-              L4Re::chkcap(L4Re::Env::env()->get_cap<L4Re::Dataspace>(optarg),
-                           "Find a dataspace capability.\n");
-            trusted_dataspaces->push_back(ds);
-            break;
-          }
-        }
-    }
 
   printf("Max number of buffers in virtqueue: %i\n", vq_max_num);
 
